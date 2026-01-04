@@ -6,6 +6,8 @@
 #include <SDCardManager.h>
 #include <SPI.h>
 #include <builtinFonts/all.h>
+#include <esp_pm.h>
+#include <esp_sleep.h>
 
 #include "Battery.h"
 #include "CrossPointSettings.h"
@@ -258,6 +260,15 @@ void setup() {
     Serial.begin(115200);
   }
 
+  // Set CPU frequency to 80MHz for power savings
+  setCpuFrequencyMhz(80);
+
+  // Enable GPIO wakeup from light sleep for all button inputs
+  gpio_wakeup_enable((gpio_num_t)InputManager::POWER_BUTTON_PIN, GPIO_INTR_LOW_LEVEL);
+  gpio_wakeup_enable((gpio_num_t)1, GPIO_INTR_ANYEDGE);  // ADC buttons GPIO 1
+  gpio_wakeup_enable((gpio_num_t)2, GPIO_INTR_ANYEDGE);  // ADC buttons GPIO 2
+  esp_sleep_enable_gpio_wakeup();
+
   inputManager.begin();
   // Initialize pins
   pinMode(BAT_GPIO0, INPUT);
@@ -355,10 +366,12 @@ void loop() {
 
   // Add delay at the end of the loop to prevent tight spinning
   // When an activity requests skip loop delay (e.g., webserver running), use yield() for faster response
-  // Otherwise, use longer delay to save power
+  // Otherwise, use light sleep to save power
   if (currentActivity && currentActivity->skipLoopDelay()) {
     yield();  // Give FreeRTOS a chance to run tasks, but return immediately
   } else {
-    delay(10);  // Normal delay when no activity requires fast response
+    // Use light sleep for maximum power savings - CPU will wake on GPIO interrupt or timer
+    esp_sleep_enable_timer_wakeup(10000);  // 10ms in microseconds
+    esp_light_sleep_start();
   }
 }
