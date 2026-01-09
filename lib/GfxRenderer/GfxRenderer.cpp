@@ -66,6 +66,34 @@ void GfxRenderer::drawPixel(const int x, const int y, const bool state) const {
   }
 }
 
+void GfxRenderer::drawPixelToChunks(const int x, const int y, const bool state) const {
+  int rotatedX = 0;
+  int rotatedY = 0;
+  rotateCoordinates(x, y, &rotatedX, &rotatedY);
+
+  // Bounds checking against physical panel dimensions
+  if (rotatedX < 0 || rotatedX >= EInkDisplay::DISPLAY_WIDTH || rotatedY < 0 ||
+      rotatedY >= EInkDisplay::DISPLAY_HEIGHT) {
+    return;
+  }
+
+  // Calculate byte position and bit position
+  const uint32_t byteIndex = rotatedY * EInkDisplay::DISPLAY_WIDTH_BYTES + (rotatedX / 8);
+  const size_t chunkIndex = byteIndex / BW_BUFFER_CHUNK_SIZE;
+  const size_t chunkOffset = byteIndex % BW_BUFFER_CHUNK_SIZE;
+  const uint8_t bitPosition = 7 - (rotatedX % 8);
+
+  if (!bwBufferChunks[chunkIndex]) {
+    return;
+  }
+
+  if (state) {
+    bwBufferChunks[chunkIndex][chunkOffset] &= ~(1 << bitPosition);
+  } else {
+    bwBufferChunks[chunkIndex][chunkOffset] |= 1 << bitPosition;
+  }
+}
+
 int GfxRenderer::getTextWidth(const int fontId, const char* text, const EpdFontFamily::Style style) const {
   if (fontMap.count(fontId) == 0) {
     Serial.printf("[%lu] [GFX] Font %d not found\n", millis(), fontId);
@@ -492,6 +520,10 @@ void GfxRenderer::copyGrayscaleLsbBuffers() const { einkDisplay.copyGrayscaleLsb
 
 void GfxRenderer::copyGrayscaleMsbBuffers() const { einkDisplay.copyGrayscaleMsbBuffers(einkDisplay.getFrameBuffer()); }
 
+void GfxRenderer::copyChunksToMsb() const {
+  einkDisplay.copyChunksToRedRam(bwBufferChunks, BW_BUFFER_NUM_CHUNKS, BW_BUFFER_CHUNK_SIZE);
+}
+
 void GfxRenderer::displayGrayBuffer() const { einkDisplay.displayGrayBuffer(); }
 
 void GfxRenderer::freeBwBufferChunks() {
@@ -499,6 +531,14 @@ void GfxRenderer::freeBwBufferChunks() {
     if (bwBufferChunk) {
       free(bwBufferChunk);
       bwBufferChunk = nullptr;
+    }
+  }
+}
+
+void GfxRenderer::clearBwBufferChunks() {
+  for (size_t i = 0; i < BW_BUFFER_NUM_CHUNKS; i++) {
+    if (bwBufferChunks[i]) {
+      memset(bwBufferChunks[i], 0x00, BW_BUFFER_CHUNK_SIZE);
     }
   }
 }
@@ -642,6 +682,15 @@ void GfxRenderer::renderChar(const EpdFontFamily& fontFamily, const uint32_t cp,
           if (renderMode == BW && bmpVal < 3) {
             // Black (also paints over the grays in BW mode)
             drawPixel(screenX, screenY, pixelState);
+          } else if (renderMode == GRAYSCALE_DUAL) {
+            // LSB: dark gray (bmpVal == 1) → main framebuffer
+            if (bmpVal == 1) {
+              drawPixel(screenX, screenY, false);
+            }
+            // MSB: light+dark gray (bmpVal == 1 || bmpVal == 2) → backup chunks
+            if (bmpVal == 1 || bmpVal == 2) {
+              drawPixelToChunks(screenX, screenY, false);
+            }
           } else if (renderMode == GRAYSCALE_MSB && (bmpVal == 1 || bmpVal == 2)) {
             // Light gray (also mark the MSB if it's going to be a dark gray too)
             // We have to flag pixels in reverse for the gray buffers, as 0 leave alone, 1 update

@@ -9,7 +9,7 @@
 
 class GfxRenderer {
  public:
-  enum RenderMode { BW, GRAYSCALE_LSB, GRAYSCALE_MSB };
+  enum RenderMode { BW, GRAYSCALE_LSB, GRAYSCALE_MSB, GRAYSCALE_DUAL };
 
   // Logical screen orientation from the perspective of callers
   enum Orientation {
@@ -34,6 +34,7 @@ class GfxRenderer {
                   EpdFontFamily::Style style) const;
   void freeBwBufferChunks();
   void rotateCoordinates(int x, int y, int* rotatedX, int* rotatedY) const;
+  void drawPixelToChunks(int x, int y, bool state) const;
 
  public:
   explicit GfxRenderer(EInkDisplay& einkDisplay) : einkDisplay(einkDisplay), renderMode(BW), orientation(Portrait) {}
@@ -96,9 +97,11 @@ class GfxRenderer {
   void setRenderMode(const RenderMode mode) { this->renderMode = mode; }
   void copyGrayscaleLsbBuffers() const;
   void copyGrayscaleMsbBuffers() const;
+  void copyChunksToMsb() const;
   void displayGrayBuffer() const;
   bool storeBwBuffer();  // Returns true if buffer was stored successfully
   void restoreBwBuffer();
+  void clearBwBufferChunks();
   void cleanupGrayscaleWithFrameBuffer() const;
 
   // Low level functions
