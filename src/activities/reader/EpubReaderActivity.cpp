@@ -389,16 +389,15 @@ void EpubReaderActivity::renderContents(std::unique_ptr<Page> page, const int or
   // grayscale rendering
   // TODO: Only do this if font supports it
   if (SETTINGS.textAntiAliasing) {
-    renderer.clearScreen(0x00);
-    renderer.setRenderMode(GfxRenderer::GRAYSCALE_LSB);
-    page->render(renderer, SETTINGS.getReaderFontId(), orientedMarginLeft, orientedMarginTop);
-    renderer.copyGrayscaleLsbBuffers();
-
-    // Render and copy to MSB buffer
+    // Optimization: Render only MSB pass (captures both light and dark gray pixels).
+    // Copying the same buffer to both MSB and LSB creates a "Dark Gray" (1,1) result for all anti-aliased pixels.
+    // This saves one full render pass (~30-50% faster grayscale update) with acceptable quality loss.
     renderer.clearScreen(0x00);
     renderer.setRenderMode(GfxRenderer::GRAYSCALE_MSB);
     page->render(renderer, SETTINGS.getReaderFontId(), orientedMarginLeft, orientedMarginTop);
-    renderer.copyGrayscaleMsbBuffers();
+    
+    // Copy the rendered buffer to both LSB and MSB buffers in one go
+    renderer.duplicateGrayscaleBuffer();
 
     // display grayscale part
     renderer.displayGrayBuffer();

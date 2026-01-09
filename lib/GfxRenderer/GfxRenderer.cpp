@@ -492,6 +492,10 @@ void GfxRenderer::copyGrayscaleLsbBuffers() const { einkDisplay.copyGrayscaleLsb
 
 void GfxRenderer::copyGrayscaleMsbBuffers() const { einkDisplay.copyGrayscaleMsbBuffers(einkDisplay.getFrameBuffer()); }
 
+void GfxRenderer::duplicateGrayscaleBuffer() const {
+  einkDisplay.copyGrayscaleBuffers(einkDisplay.getFrameBuffer(), einkDisplay.getFrameBuffer());
+}
+
 void GfxRenderer::displayGrayBuffer() const { einkDisplay.displayGrayBuffer(); }
 
 void GfxRenderer::freeBwBufferChunks() {

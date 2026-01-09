@@ -96,6 +96,7 @@ class GfxRenderer {
   void setRenderMode(const RenderMode mode) { this->renderMode = mode; }
   void copyGrayscaleLsbBuffers() const;
   void copyGrayscaleMsbBuffers() const;
+  void duplicateGrayscaleBuffer() const;
   void displayGrayBuffer() const;
   bool storeBwBuffer();  // Returns true if buffer was stored successfully
   void restoreBwBuffer();
