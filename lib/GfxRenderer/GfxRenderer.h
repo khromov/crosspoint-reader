@@ -9,7 +9,7 @@
 
 class GfxRenderer {
  public:
-  enum RenderMode { BW, GRAYSCALE_LSB, GRAYSCALE_MSB };
+  enum RenderMode { BW, GRAYSCALE_LSB, GRAYSCALE_MSB, DITHERED };
 
   // Logical screen orientation from the perspective of callers
   enum Orientation {

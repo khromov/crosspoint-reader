@@ -653,6 +653,35 @@ void GfxRenderer::renderChar(const EpdFontFamily& fontFamily, const uint32_t cp,
           } else if (renderMode == GRAYSCALE_LSB && bmpVal == 1) {
             // Dark gray
             drawPixel(screenX, screenY, false);
+          } else if (renderMode == DITHERED) {
+            if (bmpVal == 0) {
+              // Black - always draw
+              drawPixel(screenX, screenY, pixelState);
+            } else if (bmpVal == 3) {
+              // White - do nothing (assume bg is white)
+            } else {
+              // Dithering for Grays (1=Dark, 2=Light)
+              // Simple 2x2 Bayer Matrix:
+              // 0 2
+              // 3 1
+              // (x&1) + ((y&1)<<1) gives 0, 1, 2, 3 based on position
+              const int bayer = (screenX & 1) + ((screenY & 1) << 1);
+              bool draw = false;
+
+              if (bmpVal == 1) {
+                // Dark Gray: Draw Black 75% (3/4 pixels)
+                // Draw if bayer > 0 (1, 2, 3)
+                draw = (bayer > 0);
+              } else if (bmpVal == 2) {
+                // Light Gray: Draw Black 25% (1/4 pixels)
+                // Draw if bayer > 2 (3)
+                draw = (bayer > 2);
+              }
+
+              if (draw) {
+                drawPixel(screenX, screenY, pixelState);
+              }
+            }
           }
         } else {
           const uint8_t byte = bitmap[pixelPosition / 8];

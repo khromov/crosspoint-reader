@@ -373,8 +373,16 @@ void EpubReaderActivity::renderScreen() {
 void EpubReaderActivity::renderContents(std::unique_ptr<Page> page, const int orientedMarginTop,
                                         const int orientedMarginRight, const int orientedMarginBottom,
                                         const int orientedMarginLeft) {
+  // Use DITHERED mode for fast anti-aliasing simulation in a single pass
+  if (SETTINGS.textAntiAliasing) {
+    renderer.setRenderMode(GfxRenderer::DITHERED);
+  } else {
+    renderer.setRenderMode(GfxRenderer::BW);
+  }
+
   page->render(renderer, SETTINGS.getReaderFontId(), orientedMarginLeft, orientedMarginTop);
   renderStatusBar(orientedMarginRight, orientedMarginBottom, orientedMarginLeft);
+
   if (pagesUntilFullRefresh <= 1) {
     renderer.displayBuffer(EInkDisplay::HALF_REFRESH);
     pagesUntilFullRefresh = SETTINGS.getRefreshFrequency();
@@ -383,29 +391,8 @@ void EpubReaderActivity::renderContents(std::unique_ptr<Page> page, const int or
     pagesUntilFullRefresh--;
   }
 
-  // Save bw buffer to reset buffer state after grayscale data sync
-  renderer.storeBwBuffer();
-
-  // grayscale rendering
-  // TODO: Only do this if font supports it
-  if (SETTINGS.textAntiAliasing) {
-    // Optimization: Render only MSB pass (captures both light and dark gray pixels).
-    // Copying the same buffer to both MSB and LSB creates a "Dark Gray" (1,1) result for all anti-aliased pixels.
-    // This saves one full render pass (~30-50% faster grayscale update) with acceptable quality loss.
-    renderer.clearScreen(0x00);
-    renderer.setRenderMode(GfxRenderer::GRAYSCALE_MSB);
-    page->render(renderer, SETTINGS.getReaderFontId(), orientedMarginLeft, orientedMarginTop);
-    
-    // Copy the rendered buffer to both LSB and MSB buffers in one go
-    renderer.duplicateGrayscaleBuffer();
-
-    // display grayscale part
-    renderer.displayGrayBuffer();
-    renderer.setRenderMode(GfxRenderer::BW);
-  }
-
-  // restore the bw data
-  renderer.restoreBwBuffer();
+  // Restore render mode to default
+  renderer.setRenderMode(GfxRenderer::BW);
 }
 
 void EpubReaderActivity::renderStatusBar(const int orientedMarginRight, const int orientedMarginBottom,
