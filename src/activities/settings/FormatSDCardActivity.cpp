@@ -97,9 +97,8 @@ void FormatSDCardActivity::loop() {
     if (mappedInput.wasPressed(MappedInputManager::Button::Confirm)) {
       xSemaphoreTake(renderingMutex, portMAX_DELAY);
       state = FORMATTING;
+      render();  // Render synchronously to show "Formatting..." before we start
       xSemaphoreGive(renderingMutex);
-      updateRequired = true;
-      vTaskDelay(10 / portTICK_PERIOD_MS);
       performFormat();
     }
     if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
