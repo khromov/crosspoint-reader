@@ -151,10 +151,9 @@ void enterNewActivity(Activity* activity) {
 
 // Verify long press on wake-up from deep sleep
 void verifyWakeupLongPress() {
-  // Only verify button press if waking from deep sleep
-  // Skip for software resets (esp_restart) and power-on
-  esp_reset_reason_t reason = esp_reset_reason();
-  if (reason != ESP_RST_DEEPSLEEP) {
+  // Skip verification for software resets (esp_restart after format, OTA, etc.)
+  // All other cases (deep sleep wake, power on, etc.) still require long press
+  if (esp_reset_reason() == ESP_RST_SW) {
     return;
   }
 
