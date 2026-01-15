@@ -8,12 +8,7 @@
 #include "activities/ActivityWithSubactivity.h"
 
 class FormatSDCardActivity final : public ActivityWithSubactivity {
-  enum State {
-    WAITING_CONFIRMATION,
-    FORMATTING,
-    SUCCESS,
-    FAILED
-  };
+  enum State { WAITING_CONFIRMATION, FORMATTING, SUCCESS, FAILED };
 
   TaskHandle_t displayTaskHandle = nullptr;
   SemaphoreHandle_t renderingMutex = nullptr;
