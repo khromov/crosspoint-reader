@@ -54,8 +54,6 @@ void FormatSDCardActivity::render() {
 
   renderer.clearScreen();
 
-  const auto pageWidth = renderer.getScreenWidth();
-
   renderer.drawCenteredText(UI_12_FONT_ID, 15, "Format SD Card", true, EpdFontFamily::BOLD);
 
   if (state == WAITING_CONFIRMATION) {
